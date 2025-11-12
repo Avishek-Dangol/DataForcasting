@@ -10,9 +10,15 @@ def create_features(ticker, file_path):
     for a given stock or crypto ticker file.
     """
     df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
-    print(f"--- Processing {ticker} (Initial rows: {len(df)})")
+    print(f"Processing {ticker} (Initial rows: {len(df)})")
 
     df.dropna(inplace=True)
+
+    for col in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    df.dropna(subset=['Close'], inplace=True)
     
     df['Return'] = df['Close'].pct_change()
     df['SMA_7'] = df['Close'].rolling(window=7).mean()

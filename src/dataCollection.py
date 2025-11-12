@@ -15,9 +15,18 @@ def fetch_data(ticker, start, end):
     if data.empty:
         print(f"Error: Could not fetch data for {ticker}. Check the ticker symbol or range.")
         return pd.DataFrame()
+    
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = [col[0] for col in data.columns]
 
+    numeric_cols = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+    for col in numeric_cols:
+        if col in data.columns:
+            data[col] = pd.to_numeric(data[col], errors='coerce')
+
+    data.reset_index(inplace=True) 
     file_path = f"{output_dir}/{ticker}.csv"
-    data.to_csv(file_path)
+    data.to_csv(file_path, index=False)
     print(f"Saved {ticker} data to {file_path}")
 
     return data
