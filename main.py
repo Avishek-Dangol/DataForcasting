@@ -1,24 +1,24 @@
 # main.py
 import os
-from src import data_collection
-from src import data_preprocessing
-from src import trend_analysis
-from models import LinearRegressionModel
+from src import dataCollection
+from src import dataPreprocessing
+from src import trendAnalysis
+from models import linearRegressionModel
 
 def main():
     print("Starting Independent Data Forecasting Project...\n")
 
     print("Step 1: Data Collection")
-    data_collection.main() 
+    dataCollection.main() 
 
     print("Step 2: Data Preprocessing")
-    data_preprocessing.main() 
+    dataPreprocessing.main() 
 
     print("Step 3: Trend Analysis / EDA")
-    trend_analysis.trend_analysis()
+    trendAnalysis.trend_analysis()
 
     print("Step 4: Linear Regression Model Training & Prediction")
-    LinearRegressionModel.run_all_models_on_data()
+    linearRegressionModel.run_all_models_on_data()
 
 if __name__ == "__main__":
     main()
