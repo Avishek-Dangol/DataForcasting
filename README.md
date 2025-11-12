@@ -54,15 +54,15 @@ Enter tickers (e.g., AAPL, NVDA, BTC-USD): NVDA
 Enter number of days to forecast (e.g., 10): 10
 
 
-- The program will:
+**The program will:**
 
-**Download market data**
+  - Download market data
 
-**Generate technical analysis charts**
+  - Generate technical analysis charts
 
-**Train a regression model**
+  - Train a regression model
 
-**Extend the chart with future forecasts**
+  - Extend the chart with future forecasts
 
 View your results:
 
@@ -74,6 +74,7 @@ View your results:
 
 
 ## Project Structure
+```
 DataForecasting/
 │
 ├── main.py
@@ -89,7 +90,8 @@ DataForecasting/
     ├── dataCollection.py      # Data fetching 
     ├── dataPreprocessing.py   # Feature generation
     └── trendAnalysis.py
-    
+```
+   
 ## Author
 **Avishek Dangol**
 - [dangolavishek202@gmail.com]
