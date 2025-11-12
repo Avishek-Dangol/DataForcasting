@@ -24,3 +24,9 @@ This project integrates **data collection**, **feature engineering**, **trend vi
 
 - **Modular Design:**  
   Organized into modules for easy maintenance and scalability:
+
+## Author
+- **Avishek Dangol**
+Data Forecasting & ML Enthusiast
+[dangolavishek202@gmail.com]
+[github.com/Avishek-Dangol]
