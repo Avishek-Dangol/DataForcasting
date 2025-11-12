@@ -10,10 +10,9 @@ import joblib
 
 DATA_DIR = os.path.join("data")
 MODELS_DIR = os.path.join("models")
-VISUALS_DIR = os.path.join("visuals")  
+VISUALS_DIR = os.path.join("visuals", "predictions") 
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(VISUALS_DIR, exist_ok=True)
-
 
 def prepare_data_for_model(df: pd.DataFrame, feature_cols: list, target_shift: int = 1) -> pd.DataFrame:
     required = set(feature_cols + ["Close"])
@@ -32,12 +31,7 @@ def time_based_train_test_split(df: pd.DataFrame, train_frac: float = 0.8) -> Tu
     split_idx = int(n * train_frac)
     return df.iloc[:split_idx].copy(), df.iloc[split_idx:].copy()
 
-
-def train_and_evaluate(
-    train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
-    feature_cols: list,
-) -> Tuple[LinearRegression, StandardScaler, Dict[str, float], pd.Series]:
+def train_and_evaluate(train_df, test_df, feature_cols):
     X_train = train_df[feature_cols].values
     y_train = train_df["Target_Close"].values
     X_test = test_df[feature_cols].values
@@ -62,8 +56,7 @@ def train_and_evaluate(
     preds_series = pd.Series(preds, index=test_df.index, name="Predicted_Close")
     return model, scaler, metrics, preds_series
 
-
-def save_artifacts(model: LinearRegression, scaler: StandardScaler, ticker: str):
+def save_artifacts(model, scaler, ticker):
     model_path = os.path.join(MODELS_DIR, f"{ticker}_linearreg_model.pkl")
     scaler_path = os.path.join(MODELS_DIR, f"{ticker}_scaler.pkl")
     joblib.dump(model, model_path)
@@ -71,9 +64,7 @@ def save_artifacts(model: LinearRegression, scaler: StandardScaler, ticker: str)
     print(f"Saved model to: {model_path}")
     print(f"Saved scaler to: {scaler_path}")
 
-
-def forecast_future(df: pd.DataFrame, model: LinearRegression, scaler: StandardScaler, feature_cols: list, days: int):
-    """Forecast N days ahead using recursive prediction."""
+def forecast_future(df, model, scaler, feature_cols, days):
     future_df = df.copy()
     preds = []
 
@@ -86,7 +77,6 @@ def forecast_future(df: pd.DataFrame, model: LinearRegression, scaler: StandardS
         new_row = future_df.iloc[-1].copy()
         new_row["Close"] = next_close
 
-        # Update rolling features
         for col in feature_cols:
             if col.startswith("SMA_"):
                 window = int(col.split("_")[1])
@@ -99,7 +89,65 @@ def forecast_future(df: pd.DataFrame, model: LinearRegression, scaler: StandardS
     future_dates = pd.date_range(df.index[-1] + pd.Timedelta(days=1), periods=days)
     return pd.Series(preds, index=future_dates, name="Forecast_Close")
 
-def process_file(file_path: str, feature_cols: list = None, forecast_days: int = 10):
+def calculate_support_resistance(prices, window=30):
+    """Find approximate support/resistance using local min/max."""
+    support = prices.rolling(window).min().iloc[-1]
+    resistance = prices.rolling(window).max().iloc[-1]
+    return support, resistance
+
+def calculate_fibonacci_levels(prices):
+    """Compute simple Fibonacci retracement levels."""
+    max_price = prices.max()
+    min_price = prices.min()
+    diff = max_price - min_price
+    levels = {
+        "0%": max_price,
+        "23.6%": max_price - 0.236 * diff,
+        "38.2%": max_price - 0.382 * diff,
+        "50%": max_price - 0.5 * diff,
+        "61.8%": max_price - 0.618 * diff,
+        "100%": min_price,
+    }
+    return levels
+
+def plot_forecast_with_trends(df, preds, future_preds, ticker, forecast_days):
+    """Show last 30 days + forecast, keep real price scale."""
+    df_recent = df.tail(30).copy()
+    plt.figure(figsize=(12, 6))
+
+    # Historical and model lines
+    plt.plot(df_recent.index, df_recent["Close"], color="blue", linewidth=1.5, label="Historical Close")
+    plt.plot(preds.index, preds.values, color="orange", linewidth=1.5, label="Model Predictions")
+    plt.plot(future_preds.index, future_preds.values, "--", color="red", linewidth=1.8, label=f"{forecast_days}-Day Forecast")
+
+    # Trend overlays
+    sma_7 = df_recent["Close"].rolling(7).mean()
+    sma_30 = df_recent["Close"].rolling(30).mean()
+    plt.plot(sma_7.index, sma_7, color="green", linestyle="--", linewidth=1, label="SMA 7")
+    plt.plot(sma_30.index, sma_30, color="purple", linestyle="--", linewidth=1, label="SMA 30")
+
+    support, resistance = calculate_support_resistance(df_recent["Close"])
+    plt.axhline(support, color="teal", linestyle=":", linewidth=1.2, label=f"Support ({support:.2f})")
+    plt.axhline(resistance, color="crimson", linestyle=":", linewidth=1.2, label=f"Resistance ({resistance:.2f})")
+
+    fib_levels = calculate_fibonacci_levels(df_recent["Close"])
+    for label, level in fib_levels.items():
+        plt.axhline(level, linestyle="--", color="gray", alpha=0.3)
+        plt.text(df_recent.index[0], level, label, fontsize=8, color="gray")
+
+    plt.title(f"{ticker} 30-Day Trend + {forecast_days}-Day Forecast", fontsize=14, fontweight="bold")
+    plt.xlabel("Date")
+    plt.ylabel("Price (USD)")
+    plt.legend(loc="best")
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+
+    save_path = os.path.join(VISUALS_DIR, f"{ticker}_forecast_{forecast_days}d.png")
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+    print(f"Saved forecast chart to: {save_path}")
+
+def process_file(file_path, feature_cols=None, forecast_days=10):
     if feature_cols is None:
         feature_cols = ["Return", "SMA_7", "SMA_30", "SMA_90", "Vol_30"]
 
@@ -121,44 +169,16 @@ def process_file(file_path: str, feature_cols: list = None, forecast_days: int =
         print(f"  - {k}: {v:.4f}")
 
     save_artifacts(model, scaler, ticker)
-
     future_preds = forecast_future(df_model, model, scaler, feature_cols, forecast_days)
 
-    plt.figure(figsize=(12, 6))
-    plt.plot(df_model.index, df_model["Close"], color="blue", linewidth=1.5, label="Historical Close")
-    plt.plot(preds.index, preds.values, "orange", linewidth=1.8, label="Model Predictions")
-
-    plt.plot(
-        future_preds.index,
-        future_preds.values,
-        color="orange",
-        linestyle="--",
-        linewidth=2.0,
-        label=f"{forecast_days}-Day Forecast",
-    )
-
-    plt.axvspan(df_model.index[-1], future_preds.index[-1], color="orange", alpha=0.08)
-
-    plt.title(f"{ticker} Price Forecast ({forecast_days}-Day Extension)", fontsize=14, fontweight="bold")
-    plt.xlabel("Date")
-    plt.ylabel("Price (USD)")
-    plt.grid(alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-
-    save_path = os.path.join(VISUALS_DIR, f"{ticker}_forecast.png")
-    plt.savefig(save_path)
-    plt.close()
-
-    print(f"Saved extended forecast chart to: {save_path}\n")
-
+    plot_forecast_with_trends(df_model, preds, future_preds, ticker, forecast_days)
 
 def run_all_models_on_data():
     files = [f for f in os.listdir(DATA_DIR) if f.endswith(".csv")]
     if not files:
         print("No CSV files found in data/. Run preprocessing first.")
         return
-    
+
     forecast_days = int(input("\nHow many days into the future do you want to forecast? (e.g., 5, 10, 30): "))
 
     for fname in files:
