@@ -1,24 +1,33 @@
 # main.py
+from src.dataCollection import fetch_data
+from src.dataPreprocessing import process_all_data
+from src.trendAnalysis import trend_analysis
+from models.linearRegressionModel import run_all_models_on_data
+from datetime import date
+from dateutil.relativedelta import relativedelta
 import os
-from src import dataCollection
-from src import dataPreprocessing
-from src import trendAnalysis
-from models import linearRegressionModel
 
 def main():
-    print("Starting Independent Data Forecasting Project...\n")
+    print("\nData Forecasting Project\n")
 
-    print("Step 1: Data Collection")
-    dataCollection.main() 
+    tickers = input("Enter tickers (e.g., AAPL, NVDA, BTC-USD): ").upper().split(',')
+    tickers = [t.strip() for t in tickers if t.strip()]
 
-    print("Step 2: Data Preprocessing")
-    dataPreprocessing.main() 
+    start_date = (date.today() - relativedelta(years=5)).strftime("%Y-%m-%d")
+    end_date = date.today().strftime("%Y-%m-%d")
+    
+    os.makedirs("data", exist_ok=True)
 
-    print("Step 3: Trend Analysis / EDA")
-    trendAnalysis.trend_analysis()
+    for ticker in tickers:
+        fetch_data(ticker, start=start_date, end=end_date)
 
-    print("Step 4: Linear Regression Model Training & Prediction")
-    linearRegressionModel.run_all_models_on_data()
+    process_all_data()
+
+    trend_analysis()
+
+    run_all_models_on_data()
+
+    print("\nForcasting completed!")
 
 if __name__ == "__main__":
     main()
