@@ -1,7 +1,7 @@
 import os
 import warnings
 from typing import Tuple, Dict
-
+from visualizationCharts import PredictionChart
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,7 +19,6 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(VISUALS_DIR, exist_ok=True)
 
 def prepare_data_for_model(df: pd.DataFrame, feature_cols: list, target_shift: int = 1) -> pd.DataFrame:
-    # required columns check
     required = set(feature_cols + ["Close"])
     missing = required - set(df.columns)
     if missing:
@@ -69,40 +68,17 @@ def train_and_evaluate(
 
     metrics = {"MAE": mae, "MSE": mse, "RMSE": rmse, "R2": r2}
 
-    # Return model, scaler, metrics, and Series of predictions
     preds_series = pd.Series(y_pred, index=test_df.index, name="Predicted_Close")
     return model, scaler, metrics, preds_series
 
 
 def save_artifacts(model: LinearRegression, scaler: StandardScaler, ticker: str):
-    """Save model and scaler to models/ directory with ticker-specific names."""
     model_path = os.path.join(MODELS_DIR, f"{ticker}_linearreg_model.pkl")
     scaler_path = os.path.join(MODELS_DIR, f"{ticker}_scaler.pkl")
     joblib.dump(model, model_path)
     joblib.dump(scaler, scaler_path)
     print(f"Saved model to: {model_path}")
     print(f"Saved scaler to: {scaler_path}")
-
-
-def plot_predictions(test_df: pd.DataFrame, preds: pd.Series, ticker: str):
-    """
-    Plot actual vs predicted Close prices for the test period and save figure.
-    """
-    plt.figure(figsize=(12, 6))
-    plt.plot(test_df.index, test_df["Target_Close"], label="Actual Next-Day Close", linewidth=1.25)
-    plt.plot(preds.index, preds.values, label="Predicted Next-Day Close (LR)", linewidth=1.25)
-    plt.title(f"{ticker} — Actual vs Predicted Next-Day Close (Linear Regression)")
-    plt.xlabel("Date")
-    plt.ylabel("Price (USD)")
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-
-    out_file = os.path.join(VISUALS_DIR, f"{ticker}_lr_predictions.png")
-    plt.savefig(out_file, dpi=250)
-    plt.show()
-    print(f"Saved prediction plot to: {out_file}")
-
 
 def process_file(file_path: str, feature_cols: list = None):
     """
@@ -114,7 +90,6 @@ def process_file(file_path: str, feature_cols: list = None):
     ticker = os.path.basename(file_path).replace(".csv", "")
     print(f"\n--- Modeling {ticker} ---")
 
-    # Load processed CSV 
     df = pd.read_csv(file_path, index_col="Date", parse_dates=True)
 
     # Prepare data 
@@ -140,7 +115,7 @@ def process_file(file_path: str, feature_cols: list = None):
     save_artifacts(model, scaler, ticker)
 
     # Plot predictions vs actual
-    plot_predictions(test_df, preds, ticker)
+    PredictionChart(test_df, preds, ticker).show()
 
 
 def run_all_models_on_data():
