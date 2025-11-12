@@ -27,6 +27,6 @@ This project integrates **data collection**, **feature engineering**, **trend vi
 
 ## Author
 - **Avishek Dangol**
-Data Forecasting & ML Enthusiast
-[dangolavishek202@gmail.com]
-[github.com/Avishek-Dangol]
+  Data Forecasting & ML Enthusiast
+  [dangolavishek202@gmail.com]
+  [github.com/Avishek-Dangol]
