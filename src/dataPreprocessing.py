@@ -7,7 +7,7 @@ DATA_DIR = "data"
 def create_features(ticker, file_path):
 
     df = pd.read_csv(file_path, index_col='Date', parse_dates=True)
-    print(f"--- Processing {ticker} (Initial rows: {len(df)}) ---")
+    print(f"--- Processing {ticker} (Initial rows: {len(df)})")
 
     df.dropna(inplace=True)
     
@@ -36,4 +36,4 @@ if __name__ == "__main__":
             df_features = create_features(ticker, file_path)
             processed_count += 1
 
-    print(f"\nBatch Processing Complete: {processed_count} files processed. ---")
+    print(f"\nBatch Processing Complete: {processed_count} files processed.")
