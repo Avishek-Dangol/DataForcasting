@@ -90,13 +90,11 @@ def forecast_future(df, model, scaler, feature_cols, days):
     return pd.Series(preds, index=future_dates, name="Forecast_Close")
 
 def calculate_support_resistance(prices, window=30):
-    """Find approximate support/resistance using local min/max."""
     support = prices.rolling(window).min().iloc[-1]
     resistance = prices.rolling(window).max().iloc[-1]
     return support, resistance
 
 def calculate_fibonacci_levels(prices):
-    """Compute simple Fibonacci retracement levels."""
     max_price = prices.max()
     min_price = prices.min()
     diff = max_price - min_price
@@ -111,7 +109,6 @@ def calculate_fibonacci_levels(prices):
     return levels
 
 def plot_forecast_with_trends(df, preds, future_preds, ticker, forecast_days):
-    """Show last 30 days + forecast, keep real price scale."""
     df_recent = df.tail(30).copy()
     plt.figure(figsize=(12, 6))
 
@@ -152,7 +149,7 @@ def process_file(file_path, feature_cols=None, forecast_days=10):
         feature_cols = ["Return", "SMA_7", "SMA_30", "SMA_90", "Vol_30"]
 
     ticker = os.path.basename(file_path).replace(".csv", "")
-    print(f"\n--- Modeling {ticker} ---")
+    print(f"\nModeling {ticker}")
 
     df = pd.read_csv(file_path, index_col="Date", parse_dates=True)
     df_model = prepare_data_for_model(df, feature_cols)
